@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-const { authenticate } = require('./middlewares');
+const { authenticate, generateToken } = require('./middlewares');
 const jwt = require('jsonwebtoken');
 const db = require('../database/dbConfig');
 
@@ -23,7 +23,7 @@ function register(req, res) {
   db('users')
    .insert(creds)
    .then(ids => {
-     res.status(201).json(ids)
+     res.status(201).json({message: 'Registration success', ids})
    })
    .catch(err => {
      res.status(404).json({message: 'unable to register'});
@@ -35,33 +35,26 @@ function register(req, res) {
 
 function login(req, res) {
   // implement user login
-  
-    const { username, password } = req.body;
-    db('users')
-      .select('hash')
-      .where('username', '=', username)
-      .first()
-      .then(({ hash }) => {
-        return bcrypt.compare(password, hash)
-      })
-      .then((verdict) => {
-        if (verdict) {
-          const token = jwt.sign({ username }, secret, { expiresIn: '24h' });
-          res.status(200).json(token);
-        } else {
-          res.status(406).json({ message: 'System could not log user in.' });
-        }
-      })
-      .catch((err) => {
-        console.log('An error occurred', err);
-        res.status(400).json({ message: 'An error occurred when attempting log-in.' });
-      });
+  const creds = req.body;
+
+  db('users')
+    .where({ username: creds.username })
+    .first()
+    .then(user => {
+      if (user && bcrypt.compareSync(creds.password, user.password)) {
+        const token = generateToken(user);
+        res.status(201).json({ message: 'Login Success', token})
+      } else {
+        res.status(401).json({ message: 'Login Failed'})
+      }
+    })
+    .catch(err => res.json({message: 'Fail to login'}));
 }
 
 function getJokes(req, res) {
   axios
     .get(
-      'https://08ad1pao69.execute-api.us-east-1.amazonaws.com/dev/random_ten'
+      'https://safe-falls-22549.herokuapp.com/random_ten'
     )
     .then(response => {
       res.status(200).json(response.data);
