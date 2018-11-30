@@ -76,7 +76,7 @@ class App extends Component {
                 <React.Fragment>
                 <h2>Users</h2>
                   <ol>
-                    {this.state.users.map(user => <li key={user.id}>{user.username}</li>)}
+                    {this.state.users.map(user => <li key={user.id}> Type {user.type}: {user.setup} {user.punchline}</li>)}
                   </ol>
                 </React.Fragment>
               );
